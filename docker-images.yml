@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # Django application
   myapp:
     build: .
     container_name: myapp_container
@@ -13,7 +14,7 @@ services:
     command: >
       sh -c "
         python manage.py collectstatic --noinput &&
-        daphne -b 0.0.0.0 -p 8000 BRD_dev.asgi:application
+        ./wait-for-it.sh kafka:9092 -- daphne -b 0.0.0.0 -p 8000 BRD_dev.asgi:application
       "
     depends_on:
       - BRD_DATABASE
@@ -21,6 +22,7 @@ services:
       - kafka
     restart: unless-stopped
 
+  # PostgreSQL database
   BRD_DATABASE:
     image: postgres:15
     container_name: brd_DB_container
@@ -32,6 +34,7 @@ services:
       - "5438:5432"
     restart: unless-stopped
 
+  # Redis
   redis_db:
     image: redis:7
     container_name: redis_db
@@ -39,8 +42,10 @@ services:
       - "6077:6379"
     restart: unless-stopped
 
+  # Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper_container
     ports:
       - "2181:2181"
     restart: always
@@ -52,6 +57,7 @@ services:
     volumes:
       - zookeeper_data:/bitnami/zookeeper
 
+  # Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka_container
@@ -68,6 +74,7 @@ services:
       - kafka_data:/bitnami/kafka
     depends_on:
       - zookeeper
+    restart: unless-stopped
 
 volumes:
   postgres_data:
