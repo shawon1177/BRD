@@ -94,17 +94,24 @@ DATABASES = {
     }
 }
 
-# Redis for Channels
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis_db:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.getenv("CELERY_BROKER_URL").replace("redis://", "").split("/")[0]],
+            "hosts": [("redis_db", 6379)],  # ✅ match the docker service name
         },
     },
 }
-
-
 
 
 
