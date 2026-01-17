@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+ # Django application
+  myapp:
+    build:
+      context: .
+    container_name: myapp_container
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=BRD_dev.settings
+    command: >
+      sh -c "
+        python manage.py collectstatic --noinput &&
+        daphne -b 0.0.0.0 -p 8000 BRD_dev.asgi:application
+      "
+    depends_on:
+      - BRD_DATABASE
+      - redis_db
+      - kafka
+    restart: unless-stopped
+
+
+# Django Application for Driver
+
+  driver:
+    build:
+      context: .
+    container_name: driver_container
+    volumes:
+     - .:/app
+    ports:
+     - '8001:8000'
+    env_file:
+     - .env
+    environment: 
+     - DJANGO_SETTINGS_MODULE=BRD_dev.settings
+    command: >
+      sh -c "
+       python manage.py collectstatic --noinput &&
+       daphne -b 0.0.0.0 -p 8000 BRD_dev.asgi:application
+      " 
+    depends_on:
+        - BRD_DATABASE
+        - redis_db
+        - kafka
+
+  # Celery worker
+  celery_worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: >
+      sh -c "celery -A BRD_dev worker --loglevel=info"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=BRD_dev.settings
+    depends_on:
+      - myapp
+      - redis_db
+      - BRD_DATABASE
+    restart: unless-stopped
+
+  # Celery beat
+  celery_beat:
+    build:
+      context: .
+    container_name: celery_beat
+    command: >
+      sh -c "celery -A BRD_dev beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=BRD_dev.settings
+    depends_on:
+      - myapp
+      - redis_db
+      - BRD_DATABASE
+    restart: unless-stopped
+
+
+  # PostgreSQL database
+
+  BRD_DATABASE:
+    image: postgres:15
+    container_name: brd_DB_container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    ports:
+      - "5438:5432"
+    restart: unless-stopped
+
+  redis_db:
+    image: redis:7
+    container_name: redis_db
+    ports:
+      - "6077:6379"
+    restart: unless-stopped
+
+  # zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    ports:
+      - "2181:2181"
+    restart: always
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+      - ZOOKEEPER_INIT_LIMIT=5
+      - ZOOKEEPER_SYNC_LIMIT=2
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+
+    container_name: "kafka-container"
+    depends_on:
+      - zookeeper
+
+
+
+volumes:
+  postgres_data:
+  zookeeper_data:
+  kafka_data:

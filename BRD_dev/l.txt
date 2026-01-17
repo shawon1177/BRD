@@ -1,0 +1,4 @@
+psql -h localhost -p 5435 -U BRD_admin -d BRD_db
+
+
+re_path(r'ws/create_user/(?P<receiver_id>\w+)/$', MyAsyncWebsocketConsumer.as_asgi()),
