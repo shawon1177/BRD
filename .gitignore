@@ -5,4 +5,8 @@ __pycache__/
 db.sqlite3
 media/
 staticfiles/
+<<<<<<< HEAD
 
+=======
+*.supervisord.conf
+>>>>>>> 4f3b1a9 (add super)
