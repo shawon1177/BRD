@@ -79,14 +79,16 @@ ASGI_APPLICATION = 'BRD_dev.asgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 import os
 
+import os
+
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv("ENGINE"),
-        'NAME': os.getenv("POSTGRES_DB"),  # ✅ fix
-        'USER': os.getenv("POSTGRES_USER"),
-        'PASSWORD': os.getenv("POSTGRES_PASSWORD"),
-        'HOST': os.getenv("DATABASE_HOST", 'BRD_DATABASE'),
-        'PORT': os.getenv("DATABASE_PORT", '5432'),
+        'ENGINE': 'django.db.backends.postgresql',  # fixed here
+        'NAME': os.environ.get('POSTGRES_DB', 'BRD'),
+        'USER': os.environ.get('POSTGRES_USER', 'BRD_admin'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', '72752'),
+        'HOST': os.environ.get('DATABASE_HOST', 'BRD_DATABASE'),
+        'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
 
