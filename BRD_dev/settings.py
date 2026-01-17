@@ -81,16 +81,29 @@ import os
 
 import os
 
+import os
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # fixed here
-        'NAME': os.environ.get('POSTGRES_DB', 'BRD'),
-        'USER': os.environ.get('POSTGRES_USER', 'BRD_admin'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', '72752'),
-        'HOST': os.environ.get('DATABASE_HOST', 'BRD_DATABASE'),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB'),
+        'USER': os.getenv('POSTGRES_USER'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('DATABASE_HOST'),
+        'PORT': os.getenv('DATABASE_PORT', 5432),
     }
 }
+
+# Redis for Channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("CELERY_BROKER_URL").replace("redis://", "").split("/")[0]],
+        },
+    },
+}
+
 
 
 
