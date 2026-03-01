@@ -14,7 +14,6 @@ django-celery-beat==2.8.0
 redis
 
 psycopg[binary]==3.2.4
-
 Pillow
 
 social-auth-app-django
@@ -30,6 +29,6 @@ google-auth-oauthlib
 google-auth-httplib2
 
 django-redis==6.0.0
+gunicorn
 
-confluent-kafka
-django-redis
+rapidfuzz

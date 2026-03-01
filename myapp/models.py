@@ -16,11 +16,17 @@ class BaseUserManagerCustom(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
+      extra_fields.setdefault('is_superuser', True)
+      extra_fields.setdefault('is_staff', True)
+      extra_fields.setdefault('is_active', True)
+  
+      if extra_fields.get('is_staff') is not True:
+          raise ValueError("Superuser must have is_staff=True.")
+      if extra_fields.get('is_superuser') is not True:
+          raise ValueError("Superuser must have is_superuser=True.")
+  
+      return self.create_user(email, password, **extra_fields)
 
-        return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -30,6 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
 
     is_driver = models.BooleanField(default=False)
 
@@ -106,3 +113,43 @@ class EmailOtp(models.Model):
     
     def __str__(self):  
         return f'{self.EmailOtp} and {self.PhoneOtp} for {self.user.email}'
+    
+
+class ForgetPasswordModel(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE)
+    email = models.EmailField(max_length=255,blank=True,null=True)  
+    phone = models.CharField(max_length=15,blank=True,null=True)  
+    otp = models.CharField(max_length=6,null=6)
+    attemps =models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def can_resend(self):
+        return timezone.now() >= self.created_at + timedelta(seconds=60)
+    
+    def remaining_time(self):
+        remaining = (self.created_at + timedelta(seconds=60)) - timezone.now()
+        return max(int(remaining.total_seconds()),0)
+
+    def __str__(self):
+        return f'{self.user} -- {self.email}'
+    
+
+
+class MakeOrderModel(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='customer_order')
+    location = models.TextField(max_length=1000,blank=True)
+    salary = models.DecimalField(max_digits=15,decimal_places=2,blank=True)
+    experience = models.CharField(max_length=255,blank=True)
+    working_hour = models.CharField(max_length=255)
+    contact_number = models.CharField(max_length=15,default=None)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user} -- {self.location}'
+    
+
+
+
+
+    

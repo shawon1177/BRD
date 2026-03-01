@@ -1,0 +1,20 @@
+ngrok config add-authtoken 38bMG394HQXKUA0ylV65lqm0hmV_87boj9QQqizdqcsCTFeRk
+
+
+
+curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+  | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+  && echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" \
+  | sudo tee /etc/apt/sources.list.d/ngrok.list \
+  && sudo apt update \
+  && sudo apt install ngrok
+
+ngrok http 8080
+ngrok http 8000
+
+pkill ngrok
+
+
+
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcwMTExMTY4LCJpYXQiOjE3Njk2NzkxNjgsImp0aSI6ImZkZmNkYzg2NGVlZjQxY2U4ODM3NTVkMTliMjNkOTY1IiwidXNlcl9pZCI6IjExMiJ9.0I3xZk2YVEA15zqBv3kXQAvgQsXQhMEUsIaHT3hpDnE

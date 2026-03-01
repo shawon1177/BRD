@@ -1,0 +1,41 @@
+upstream myapp {
+    server myapp:8000;
+}
+
+upstream driver {
+    server driver:8000;
+}
+
+upstream dashboard {
+    server dashboard:8000;
+}
+
+server {
+    listen 80;
+
+    location /myapp/ {
+        proxy_pass http://myapp/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /driver/ {
+        proxy_pass http://driver/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /dashboard/ {
+        proxy_pass http://dashboard/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /media/ {
+        alias /app/media/;
+    }
+}
+
