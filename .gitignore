@@ -1,11 +1,1 @@
 .env
-__pycache__/
-*.pyc
-*.log
-db.sqlite3
-
-<<<<<<< HEAD
-
-=======
-*.supervisord.conf
->>>>>>> 4f3b1a9 (add super)

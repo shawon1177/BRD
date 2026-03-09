@@ -221,7 +221,7 @@ class DriverSearch(APIView):
     permission_classes = [AdminApprovedUser]
 
     def get(self, request):
-        query = request.data.get('query')  # FIXED
+        query = request.data.get('query')  
 
         if not query:
             return Response(
@@ -544,6 +544,8 @@ class ConfirmationBookingApiView(APIView):
                 'serializer':[],
             },status=status.HTTP_200_OK
         )
+
+
 
 
 class DriverFinalizeApiView(APIView):
