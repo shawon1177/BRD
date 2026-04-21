@@ -152,4 +152,22 @@ class MakeOrderModel(models.Model):
 
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    bio = models.TextField(blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
+
+    def __str__(self):
+        return f'Profile of {self.user.email}'
     
+
+
+class LocationViewModel(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_locations',default=None)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Location of {self.user.email}: {self.location_name}'

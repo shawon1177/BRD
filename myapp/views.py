@@ -3,9 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import (SignUpCredSerializer,
-                          UserObjectViewSerializer,LoginSerializer,MakeOrderSerializer)
+                          UserObjectViewSerializer,LoginSerializer,MakeOrderSerializer,UserProfileViewSerializer,UploadUserProfileViewSerializer)
 from rest_framework.permissions import *
-from .models import (UserOtp,SignUpCred,EmailOtp,ForgetPasswordModel,MakeOrderModel)
+from .models import (UserOtp,SignUpCred,EmailOtp,ForgetPasswordModel,MakeOrderModel,UserProfile)
 from django.core.mail import send_mail
 import random
 from django.db import transaction
@@ -446,46 +446,43 @@ class PhoneForgetPass(APIView):
 
 
 
-
 class GetUserInfo(APIView):
-    def get(self,request):
-        email_or_phone = request.data.get('email_or_phone')
+
+    def get(self, request, email_or_phone):
 
         try:
-            
+            user = None
+
             if User.objects.filter(phone=email_or_phone).exists():
-                user = User.objects.get(phone=email_or_phone) 
-            
+                user = User.objects.filter(phone=email_or_phone).first()
+
             elif User.objects.filter(email=email_or_phone).exists():
-                user = User.objects.get(email=email_or_phone)
+                user = User.objects.filter(email=email_or_phone).first()
+
             else:
                 return Response(
-                {
-                    'message' : "user with this email does not exist"
-                },status=status.HTTP_404_NOT_FOUND
-            )
+                    {"message": "user with this email does not exist"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
             user_info = {
-                "email" : user.email,
-                "fullname" : user.fullName
-                }
+                "email": user.email,
+                "fullname": user.fullName
+            }
 
             return Response(
-                {
-                    'message' : user_info
-                },status=status.HTTP_200_OK
+                {"message": user_info},
+                status=status.HTTP_200_OK
             )
-
-
 
         except Exception as e:
             return Response(
-                {
-                    'message' : str(e)
-                },status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-       
+
+
+
 
 
 
@@ -563,11 +560,10 @@ class OrderDropApiView(APIView):
     permission_classes = [OnlyOwnerAndAdmin]
 
     def get(self,request):
-        id = request.data.get('id')
         UserModel = get_user_model()
 
         try:
-            user = UserModel.objects.get(id=id)
+            user = UserModel.objects.get(id=request.user.id)
             user_request_record = MakeOrderModel.objects.using('default').get(user=user)
            
             self.check_object_permissions(request, user_request_record)
@@ -598,3 +594,56 @@ class OrderDropApiView(APIView):
 
 
 
+class UploadProfilePictureAPIView(APIView):
+    permission_classes = [IsAuthenticated, OnlyOwnerAndAdmin]
+
+    def post(self, request):
+        serializer = UploadUserProfileViewSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user_profile = serializer.save(user=request.user)
+            return Response(
+                {
+                    'message': "Profile picture uploaded successfully",
+                    'serializer': UserProfileViewSerializer(user_profile).data
+                }, status=status.HTTP_201_CREATED
+            )
+        return Response(
+            {
+                'serializer': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST
+        )
+    
+
+
+    
+    
+
+class UpdateProfileApiView(APIView):
+    permission_classes = [IsAuthenticated, OnlyOwnerAndAdmin]
+
+    def put(self, request):
+        try:
+            with atomic():
+                user = UserProfile.objects.select_for_update().get(user=request.user)
+                serializer = UploadUserProfileViewSerializer(user,data=request.data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(
+                        {
+                            'message':'Profile updated successfully',
+                            'serializer' : UserProfileViewSerializer(user).data,
+                        }, status=status.HTTP_200_OK
+                    )
+                return Response(
+                    {
+                        'serializer': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            return Response(
+                {
+                    'message': 'An error occurred while updating the profile',
+                    'error': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

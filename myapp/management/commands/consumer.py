@@ -6,6 +6,7 @@ import random
 from myapp.utility.JWT_for_users import UserTokenGeneration
 from  django.core.cache import cache
 from rest_framework_simplejwt.tokens import RefreshToken
+from myapp.serializers import UserSerializer
 
 class Command(BaseCommand):
     help = "Kafka Consumer for authentication messages"
@@ -18,8 +19,8 @@ class Command(BaseCommand):
         }
 
         consumer = Consumer(config)
-        consumer.subscribe(['auth_topic'])
-        self.stdout.write(self.style.SUCCESS("Kafka Consumer started and listening to 'auth_topic'"))
+        consumer.subscribe(['auth_topic','location_topic'])
+        self.stdout.write(self.style.SUCCESS("Kafka Consumer started and listening to 'auth_topic' and 'location_topic' "))
 
         try:
             while True:
@@ -39,16 +40,28 @@ class Command(BaseCommand):
 
 
                 event_type = payload.get('event_type')
-                data = payload.get('data', {})
-                fullName = data.get('fullName')
-                email = data.get('email')
-                phone = data.get('phone')
-                password = data.get('password')
+                
 
                 if msg.topic() == 'auth_topic':
                     if event_type == 'email_verification':
+                        data = payload.get('data', {})
+                        fullName = data.get('fullName')
+                        email = data.get('email')
+                        phone = data.get('phone')
+                        password = data.get('password')
                         self.create_user_model(fullName,email,phone,password)
                         self.stdout.write(self.style.SUCCESS(f"Processed email verification for {email}"))
+                
+                if msg.topic() == 'location_topic':
+                    if event_type == "location_event":
+                        data = payload.get('data',{})
+                        user = data.get('user')
+                        owner = data.get('owner')
+                        latitude = data.get('latitude')
+                        longitude = data.get('longitude')    
+
+                        self.save_location(user,owner,latitude,longitude)
+                        self.stdout.write(self.style.SUCCESS("successfully saved location"))  
 
 
 
@@ -71,14 +84,19 @@ class Command(BaseCommand):
                  self.style.WARNING(f"User with email {email} already exists")
              )
              return
-     
-         user = User.objects.create_user(
-             email=email,
-             fullName=fullName,
-             phone=phone,
-             password=password,
-         )
-     
+         serializer = UserSerializer(data={
+             'email': email,
+             'fullName': fullName,
+             'phone': phone,
+             'password': password
+         })
+
+         if serializer.is_valid():
+             user = serializer.save()
+         else:
+             self.stdout.write(self.style.ERROR(f"Failed to create user: {serializer.errors}"))
+             return
+
          username = email.split('@')[0]
          user.username = f"{username}{random.randint(1000,9999)}"
          user.is_active = True
@@ -101,3 +119,17 @@ class Command(BaseCommand):
 
 
 
+
+    def save_location(self,user,owner ,latitude, longitude):
+        if latitude is None or longitude is None or user is None or owner is None :
+            return
+
+        from myapp.models import LocationViewModel
+
+        LocationViewModel.objects.create(
+            user_id=user,
+            owner_id=owner,
+            latitude = latitude,
+            longitude =  longitude
+            
+        )

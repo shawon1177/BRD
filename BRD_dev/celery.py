@@ -15,5 +15,13 @@ app.conf.beat_schedule = {
         'task' : "driver.tasks.update_attemps",
         'schedule' : crontab(minute='*/2')
 
+    },
+
+    "delete_location_table" : {
+        'task':'myapp.tasks.delete_location_table',
+        'schedule':crontab(minute=3)
     }
+
 }
+
+

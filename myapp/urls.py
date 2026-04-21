@@ -10,9 +10,11 @@ urlpatterns = [
     path('profileview',views.ProfileViewApi.as_view(),name="profileview"),
     path('forgetpassword',views.ForgetEmailPasswordApi.as_view(),name='forgetpassword'),
     path('phoneforgetpassword',views.PhoneForgetPass.as_view(),name='phoneforgetpassword'),
-    path('getuserinfo',views.GetUserInfo.as_view(),name='getuserinfo'),
+    path('getuserinfo/<str:email_or_phone>/', views.GetUserInfo.as_view()),
     path('LoginUserView',views.LoginAPIView.as_view(),name='LoginUserView'),
     path('makeorder',views.MakeOrderApi.as_view(),name="makeorder"),
-    path('get-orders',views.OrderDropApiView.as_view(),name="get-orders")
-    
+    path('get-orders',views.OrderDropApiView.as_view(),name="get-orders"),
+    path('upload-profile-picture', views.UploadProfilePictureAPIView.as_view(), name='upload-profile-picture'),
+    path('update-profile', views.UpdateProfileApiView.as_view(), name='update-profile'),
+
 ]

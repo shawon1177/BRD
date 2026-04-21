@@ -18,3 +18,8 @@ pkill ngrok
 
 
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcwMTExMTY4LCJpYXQiOjE3Njk2NzkxNjgsImp0aSI6ImZkZmNkYzg2NGVlZjQxY2U4ODM3NTVkMTliMjNkOTY1IiwidXNlcl9pZCI6IjExMiJ9.0I3xZk2YVEA15zqBv3kXQAvgQsXQhMEUsIaHT3hpDnE
+
+
+
+pointerCount=1, eventTime=5661212176, downTime=5661212076, phoneEventTime=00:41:02.473 } moveCount:3
+E/flutter (21755): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Unable to load asset: "assets/icons/User Icon.svg".

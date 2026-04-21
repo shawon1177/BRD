@@ -351,13 +351,13 @@ class UserDriverSession(APIView):
                 if not driver.is_driver:
                     return Response(
                         {
-                            'message' : 'the user you have provided does not belong to '
+                            'message' : 'the user you have provided does not belong to driver list'
                         },status=status.HTTP_400_BAD_REQUEST
                     )
-                if not user.is_customer:
+                if  user.is_driver:
                     return Response(
                         {
-                            'message' : 'the user you have provided does not belong to '
+                            'message' : 'the user you have provided does not belong to user '
                         },status=status.HTTP_400_BAD_REQUEST
                     )
                 

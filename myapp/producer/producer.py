@@ -32,3 +32,21 @@ def produce_message(topic,value,key=None):
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
+
+
+
+
+def tracklocation(topic,value,key=None):
+    try:
+        value = json.dumps(value).encode('utf-8')
+        producer.produce(topic=topic,value=value,key=key,callback=delivery_report)
+        producer.poll(0)
+    except KafkaException as e:
+        print(f"Error producing message: {e}")
+    except KafkaError as e:
+        print(f" kafka Error occured: {e}")
+    
+    except Exception as e:
+        print(f"unkwon error ocured {e}")
+

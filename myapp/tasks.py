@@ -3,6 +3,9 @@ from django.core.mail import send_mail
 from time import sleep
 from .models import UserOtp,SignUpCred
 from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
+from .models import LocationViewModel
 
 @shared_task
 def sendemail(phone,otp):
@@ -27,3 +30,20 @@ def detele_phone_otp(self,user_id):
 
    except:
        return "somthing went wrong"
+
+
+
+@shared_task(bind=True)
+def delete_location_table():
+   try:
+      
+     cutoff = timezone.now() - timedelta(minutes=3)
+  
+     cutoff_row = LocationViewModel.objects.filter(updated_at___lte=cutoff)
+  
+     count,_ = cutoff_row.delete()
+  
+     return f" deleted {count} successfully before {cutoff}"
+   except Exception as e:
+      return f"error occured at {e}"
+
