@@ -56,7 +56,7 @@ class GetDriverList(APIView):
             )
         return Response(
             {
-                'message' : "no driver available"
+                'Drivers' : []
             },status=status.HTTP_409_CONFLICT
         )  
         
@@ -102,6 +102,7 @@ class DriverRegistrationApproved(APIView):
 
             user.set_password(driver.password)
             user.save(using='default')
+            send_email_notification.delay(user.email, "Driver Registration Approved", "Your driver registration has been approved you can login now.")
 
             driver_profile,created  = DriverProfile.objects.using('default').get_or_create(
                 user=user,
@@ -124,7 +125,7 @@ class DriverRegistrationApproved(APIView):
                 driver_profile.save(using='default')
 
                 driver.status = "approved"
-                driver.save(using='default')
+                driver.delete()
                 return Response(
                     {
                         'message' : "Driver registration approved successfully"
@@ -597,3 +598,31 @@ class DriverFinalizeApiView(APIView):
                 
         
 
+
+
+
+class ViewDriverProfile(APIView):
+    permission_classes = [AdminApprovedUser]
+
+    def get(self, request):
+        id = request.query_params.get('id')
+
+        if not id:
+            return Response(
+                {"error": "id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = DriverModel.objects.get(id=id)
+        except DriverModel.DoesNotExist:
+            return Response(
+                {"error": "Driver not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = DriverModelSerializer(user)
+        return Response(
+            {"data": serializer.data},
+            status=status.HTTP_200_OK
+        )

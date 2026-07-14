@@ -2,7 +2,7 @@ from celery import shared_task
 from django.core.mail import send_mail
 
 @shared_task
-def send_email_notification(self,email,subject,message):
+def send_email_notification(self,email,subject=None,message=None):
     send_mail(
         subject=subject,
         message=message,

@@ -10,6 +10,7 @@ urlpatterns= [
     path('driver-resend-email',views.SendEmailOTP.as_view(),name='driver-resend-email'),
     path('driver-email-varification',views.DriverEmailVarification.as_view(),name='driver-email-varification'),
     path('driver-profile',views.DriverProfileViewApi.as_view(),name='driver-profile'),
+    
 ]
 
 if settings.DEBUG:

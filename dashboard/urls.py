@@ -14,5 +14,6 @@ urlpatterns = [
    path('GetDriverBookingViewApi',views.GetDriverBookingViewApi.as_view(),name='GetDriverBookingViewApi'),
    path('ConfirmationBookingApiView',views.ConfirmationBookingApiView.as_view(),name='ConfirmationBookingApiView'),
    path('DriverFinalizeApiView',views.DriverFinalizeApiView.as_view(),name='DriverFinalizeApiView'),
+   path('driver-profile-view',views.ViewDriverProfile.as_view(),name='driver-profile-view'),
  
 ]

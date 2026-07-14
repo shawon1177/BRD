@@ -21,7 +21,7 @@ from django.contrib.auth import get_user_model
 from django.db.transaction import atomic
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework.permissions import IsAdminUser,IsAuthenticated
 
 User = get_user_model()
 
@@ -314,36 +314,35 @@ class ProfileViewApi(APIView):
 
 
 
-class ForgetEmailPasswordApi(APIView):
+class ForgetUserPasswordApi(APIView):
     permission_classes = [AllowAny]
 
     def post(self,request):
-        email = request.data.get('email')
+        email_or_phone = request.data.get('email_or_phone')
 
-        if not email:
+        if not email_or_phone:
             return Response(
                 {
-                    'message' : "email field is required"
+                    'message' : "email or phone  field is required"
                 },status=status.HTTP_400_BAD_REQUEST
             )
         
-        
-
-    
-        
-         
-
-        with atomic():   
-            user = User.objects.select_for_update().filter(email=email).first()
-            if not user:
-              return Response(
+        with atomic():
+            if User.objects.filter(email=email_or_phone).exists():   
+              user = User.objects.select_for_update().filter(email=email_or_phone).first()
+            if User.objects.filter(phone=email_or_phone).exists():
+              user = User.objects.filter(phone=email_or_phone).first()
+              if not user:
+               return Response(
                  {
                  'message' : "user does not exist"
                 },status=status.HTTP_201_CREATED
                  )
+              
+
             
             forget_user_record,created = ForgetPasswordModel.objects.select_for_update().get_or_create(user=user,defaults={
-               'email':email,
+               'email':user.email,
                'otp':''.join(random.choices(string.digits,k=6))
              })
             
@@ -354,7 +353,8 @@ class ForgetEmailPasswordApi(APIView):
                 )  
                 return Response(
               {
-                  'message' : f"{forget_user_record.otp} is sent to {forget_user_record.email}"
+                  'message' : f"otp send to email successfully",
+                  'email' : user.email
               },status=status.HTTP_201_CREATED
              ) 
          
@@ -379,71 +379,97 @@ class ForgetEmailPasswordApi(APIView):
              
             return Response(
                  {
-                     'message' : f"{otp} is sent to {forget_user_record.email}"
+                     'message' : "otp send to email successfully"
                  },status=status.HTTP_201_CREATED
              )
 
 
 
 
-class PhoneForgetPass(APIView):
+
+class UserotpVarificationAPI(APIView):
     def post(self,request):
-        phone = request.data.get('phone')
+        email_str = request.data.get('email')
+        new_otp = request.data.get('new_otp')
 
         try:
-            with atomic():
-                user = User.objects.select_for_update().get(phone=phone)
-                forget_user_record,created = ForgetPasswordModel.objects.select_for_update().get_or_create(
-                    user=user,
-                    defaults={
-                        'phone' : phone,
-                        'otp':''.join(random.choices(string.digits,k=6))
-                    }
-                )
+            otp_record = ForgetPasswordModel.objects.get(email=email_str)
+            user = User.objects.filter(email=email_str).first()
 
-                if created:
-                    sendemail(
-                        phone,
-                        forget_user_record.otp
-                    )
-                    return Response(
-                        {
-                            'message': "successfully otp sent to your phone"
-                        },status=status.HTTP_201_CREATED
-                    )
-                
-                if not forget_user_record.can_resend():
-                    return Response(
-                     {
-                         'message' : f"resend otp after {forget_user_record.remaining_time()} seconds"
-                     },status=status.HTTP_429_TOO_MANY_REQUESTS
-                 )
-                
-                otp = ''.join(random.choices(string.digits,k=6))
-                forget_user_record.opt = otp
-                forget_user_record.created_at = timezone.now()
-                forget_user_record.save()
-                sendemail(
-                    forget_user_record.phone,
-                    forget_user_record.otp
-                )
+        except ForgetPasswordModel.DoesNotExist:
+            return Response(
+                {
+                    'message':'user with this email not found'
+                },status=status.HTTP_404_NOT_FOUND
+            )
+        
+        
+        if otp_record.attemps == 5:
+            return Response({
+            'message':'you have reached at max attemps'
+        })
+        
+        if otp_record.otp.strip() != new_otp.strip() and otp_record.attemps <= 5:
+            otp_record.attemps +=1
+            otp_record.save()
+            return Response({
+            'message':'otp did not match'
+        })
 
-                return Response(
-                        {
-                            'message': "successfully otp sent to your phone"
-                        },status=status.HTTP_201_CREATED
-                    )   
+        
+
+
+        otp_record.otp_varified = True
+        otp_record.otp = ''
+        otp_record.save()
+        refresh= RefreshToken.for_user(user)
+        access_token = refresh.access_token
+        return Response(
+                {
+                    "message": "otp varified successfully",
+                    "access_token" : str(access_token),
+                    "refresh_token": str(refresh)
+                },status= status.HTTP_200_OK
+            )
+        
+        
+
+
+class ResetpasswordAPIView(APIView):
+   def post(self, request): 
+        
+        new_password = request.data.get('new_password')
+
+        
+        
+
+        try:
+            user = User.objects.get(email=request.user.email)
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {
+                    'message':"password successfully reseted"
+                },status=status.HTTP_200_OK
+            )
 
         except User.DoesNotExist:
             return Response(
                 {
-                    'message' : "User with this phone number is not found"
+                    'message':"user not found"
                 },status=status.HTTP_404_NOT_FOUND
             )
+        except Exception as e:
+            return Response(
+                {
+                    'message':str(e)
+                },status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
 
 
 
-
+        
 
 
 class GetUserInfo(APIView):
@@ -508,7 +534,11 @@ class LoginAPIView(APIView):
                     {
                         'message' : "successfully logged in",
                         "aceess_token" : str(access_token),
-                        "refresh_token" : str(refresh)
+                        "refresh_token" : str(refresh),
+                        "is_staff":user.is_staff,
+                        "is_superuser":user.is_superuser,
+                        "is_active":user.is_active,
+                        "is_driver":user.is_driver
                     },status=status.HTTP_200_OK
                 )
             return Response(
@@ -619,31 +649,32 @@ class UploadProfilePictureAPIView(APIView):
     
     
 
+
 class UpdateProfileApiView(APIView):
     permission_classes = [IsAuthenticated, OnlyOwnerAndAdmin]
 
     def put(self, request):
-        try:
-            with atomic():
-                user = UserProfile.objects.select_for_update().get(user=request.user)
-                serializer = UploadUserProfileViewSerializer(user,data=request.data)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(
-                        {
-                            'message':'Profile updated successfully',
-                            'serializer' : UserProfileViewSerializer(user).data,
-                        }, status=status.HTTP_200_OK
-                    )
-                return Response(
-                    {
-                        'serializer': serializer.errors
-                    }, status=status.HTTP_400_BAD_REQUEST
-                )
-        except Exception as e:
+        with atomic():
+            profile, created = UserProfile.objects.get_or_create(
+                user=request.user
+            )
+
+            serializer = UploadUserProfileViewSerializer(
+                profile,
+                data=request.data,
+                partial=True
+            )
+
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
             return Response(
                 {
-                    'message': 'An error occurred while updating the profile',
-                    'error': str(e)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    "message": "Profile updated successfully",
+                    "profile": UserProfileViewSerializer(
+                        profile,
+                        context={"request": request}
+                    ).data,
+                },
+                status=status.HTTP_200_OK,
             )

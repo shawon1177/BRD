@@ -3,8 +3,13 @@ from .models import SignUpCred,MakeOrderModel,UserProfile
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework.serializers import Serializer
-
-
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from myapp.permissions.permissions import OnlyOwnerAndAdmin
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 
 User = get_user_model()
 
@@ -40,23 +45,52 @@ class SignUpCredSerializer(ModelSerializer):
 
 
 
-class UserProfileViewSerializer(ModelSerializer):
+class UpdateProfileApiView(APIView):
+    permission_classes = [IsAuthenticated, OnlyOwnerAndAdmin]
+
+    def put(self, request):
+        profile = get_object_or_404(UserProfile, user=request.user)
+
+        serializer = UploadUserProfileViewSerializer(
+            profile,
+            data=request.data,
+            partial=True
+        )
+
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "message": "Profile updated successfully",
+                "serializer": UserProfileViewSerializer(
+                    profile,
+                    context={"request": request}
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
     
+
+
+
+
+
+class UserProfileViewSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'bio', 'profile_picture']
-        read_only_fields = ['user', 'id']
+        fields = ["id", "user", "bio", "profile_picture"]
+        read_only_fields = ["id", "user"]
 
     def get_profile_picture(self, obj):
-      request = self.context.get('request')
-  
-      if obj.profile_picture:
-          if request:
-              return request.build_absolute_uri(obj.profile_picture.url)
-          return obj.profile_picture.url 
-  
-      return None
+        if obj.profile_picture:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
+        return None    
 
 
 

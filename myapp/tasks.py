@@ -9,7 +9,7 @@ from .models import LocationViewModel
 
 @shared_task
 def sendemail(phone,otp):
-    sleep(10)
+    sleep(5)
     send_mail(
         subject="Phone otp varification",
         message=f"Your OTP is {otp}",

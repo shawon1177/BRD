@@ -1,52 +1,55 @@
-from confluent_kafka import Producer,KafkaError,KafkaException
+from confluent_kafka import Producer
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 config = {
-    "bootstrap.servers" : "kafka:9092"
+    "bootstrap.servers": "kafka:9092",
+    "client.id": "django-producer",
 }
-
 
 producer = Producer(config)
 
+
 def delivery_report(err, msg):
-    if err is not None:
-        print(f"Message delivery failed: {err}")
+    if err:
+        logger.error("Kafka delivery failed: %s", err)
     else:
-        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
-
-
-def produce_message(topic,value,key=None):
-    try:
-        value = json.dumps(value).encode('utf-8')
-        producer.produce(
-            topic,
-            value=value,
-            key=key,
-            callback=delivery_report
+        logger.info(
+            "Delivered to %s [%s] offset %s",
+            msg.topic(),
+            msg.partition(),
+            msg.offset(),
         )
-    except KafkaException as e:
-        print(f"Error producing message: {e}")
-
-    except KafkaError as e:
-        print(f"Kafka error occurred: {e}")
-
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
 
 
-
-
-
-def tracklocation(topic,value,key=None):
+def produce_message(topic, value, key=None):
     try:
-        value = json.dumps(value).encode('utf-8')
-        producer.produce(topic=topic,value=value,key=key,callback=delivery_report)
-        producer.poll(0)
-    except KafkaException as e:
-        print(f"Error producing message: {e}")
-    except KafkaError as e:
-        print(f" kafka Error occured: {e}")
-    
-    except Exception as e:
-        print(f"unkwon error ocured {e}")
+        producer.produce(
+            topic=topic,
+            value=json.dumps(value).encode("utf-8"),
+            key=key,
+            callback=delivery_report,
+        )
 
+        # Serve delivery callbacks without blocking.
+        producer.poll(0)
+
+    except Exception:
+        logger.exception("Failed to produce Kafka message")
+
+
+def tracklocation(topic, value, key=None):
+    try:
+        producer.produce(
+            topic=topic,
+            value=json.dumps(value).encode("utf-8"),
+            key=key,
+            callback=delivery_report,
+        )
+
+        producer.poll(0)
+
+    except Exception:
+        logger.exception("Failed to produce location message")

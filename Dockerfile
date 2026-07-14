@@ -6,8 +6,13 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev gcc python3-dev \
+    build-essential \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install

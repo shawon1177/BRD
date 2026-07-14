@@ -121,6 +121,7 @@ class ForgetPasswordModel(models.Model):
     phone = models.CharField(max_length=15,blank=True,null=True)  
     otp = models.CharField(max_length=6,null=6)
     attemps =models.IntegerField(default=0)
+    otp_varified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
